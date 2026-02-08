@@ -1,0 +1,140 @@
+/* Custom enhancements for dark mode */
+
+.dark {
+  /* Add subtle glow to cards in dark mode */
+  --card-glow: 0 0 0 1px oklch(0.28 0.05 264 / 0.3);
+}
+
+.dark [data-card] {
+  box-shadow: var(--card-glow);
+}
+
+/* Enhance primary buttons in dark mode */
+.dark button[class*="bg-primary"] {
+  box-shadow: 0 0 12px oklch(0.65 0.25 264 / 0.3);
+}
+
+.dark button[class*="bg-primary"]:hover {
+  box-shadow: 0 0 16px oklch(0.65 0.25 264 / 0.4);
+}
+
+/* Enhance border visibility in dark mode */
+.dark [class*="border"] {
+  border-color: oklch(0.28 0.05 264 / 0.4);
+}
+
+/* Markdown content styling */
+.prose {
+  --tw-prose-body: inherit;
+  --tw-prose-headings: inherit;
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: inherit;
+  --tw-prose-code: inherit;
+  --tw-prose-pre-bg: hsl(var(--muted));
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.prose :where(p):not(:where([class~="not-prose"] *)) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose :where(p):first-child:not(:where([class~="not-prose"] *)) {
+  margin-top: 0;
+}
+
+.prose :where(p):last-child:not(:where([class~="not-prose"] *)) {
+  margin-bottom: 0;
+}
+
+.prose :where(ul, ol):not(:where([class~="not-prose"] *)) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1.5em;
+  list-style-position: outside;
+}
+
+.prose :where(ul):not(:where([class~="not-prose"] *)) {
+  list-style-type: disc;
+}
+
+.prose :where(ol):not(:where([class~="not-prose"] *)) {
+  list-style-type: decimal;
+}
+
+.prose :where(li):not(:where([class~="not-prose"] *)) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  display: list-item;
+}
+
+.prose :where(code):not(:where([class~="not-prose"] *)) {
+  background-color: hsl(var(--muted));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+  background-color: hsl(var(--muted));
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  max-width: 100%;
+}
+
+.prose :where(pre code):not(:where([class~="not-prose"] *)) {
+  background-color: transparent;
+  padding: 0;
+}
+
+.prose :where(strong):not(:where([class~="not-prose"] *)) {
+  font-weight: 600;
+}
+
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--primary) / 0.3);
+}
+
+.prose :where(a):hover:not(:where([class~="not-prose"] *)) {
+  text-decoration-color: hsl(var(--primary));
+}
+
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1em;
+  font-style: italic;
+  margin: 0.5em 0;
+}
+
+.prose :where(table):not(:where([class~="not-prose"] *)) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.prose :where(th, td):not(:where([class~="not-prose"] *)) {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5em;
+  text-align: left;
+}
+
+.prose :where(th):not(:where([class~="not-prose"] *)) {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+}
