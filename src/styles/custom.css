@@ -349,6 +349,12 @@
     padding: 0.25rem 0.5rem;
   }
   
+  /* Smaller sort icons in table headers on mobile */
+  table button svg {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
+  
   /* Adjust select triggers on mobile */
   [data-slot="select-trigger"] {
     font-size: 10px;

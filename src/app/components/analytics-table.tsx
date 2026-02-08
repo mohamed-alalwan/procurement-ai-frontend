@@ -194,7 +194,7 @@ export function AnalyticsTable({
             <TableHeader className="sticky top-0 bg-background z-10 border-b">
               <TableRow>
                 {dataColumns.map((column) => (
-                  <TableHead key={column} className="whitespace-nowrap">
+                  <TableHead key={column} className="whitespace-nowrap text-left">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -222,7 +222,7 @@ export function AnalyticsTable({
               {paginatedData.map((row, rowIndex) => (
                 <TableRow key={rowIndex} className="hover:bg-muted/50">
                   {dataColumns.map((column) => (
-                    <TableCell key={column} className="whitespace-nowrap">
+                    <TableCell key={column} className="whitespace-nowrap text-left">
                       {formatNumber(row[column], column, columns)}
                     </TableCell>
                   ))}
