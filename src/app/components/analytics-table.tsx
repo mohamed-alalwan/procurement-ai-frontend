@@ -206,12 +206,12 @@ export function AnalyticsTable({
                       </span>
                       {sortColumn === column ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="ml-2 h-4 w-4" />
+                          <ArrowUp className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                         ) : (
-                          <ArrowDown className="ml-2 h-4 w-4" />
+                          <ArrowDown className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                         )
                       ) : (
-                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                        <ArrowUpDown className="ml-2 h-3 w-3 sm:h-4 sm:w-4 opacity-50" />
                       )}
                     </Button>
                   </TableHead>

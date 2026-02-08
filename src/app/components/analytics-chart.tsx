@@ -263,6 +263,9 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
               className="text-xs"
               tick={{ fill: 'currentColor' }}
               tickFormatter={formatCategoricalValue}
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
             <YAxis 
               className="text-xs"
@@ -300,7 +303,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
               type="category"
               dataKey={categoricalField}
               className="text-xs"
-              width={250}
+              width={150}
               tick={{ fill: 'currentColor', fontSize: 11 }}
               interval={0}
             />
@@ -326,6 +329,9 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
               className="text-xs"
               tick={{ fill: 'currentColor' }}
               tickFormatter={formatCategoricalValue}
+              angle={-45}
+              textAnchor="end"
+              height={60}
             />
             <YAxis 
               className="text-xs"
