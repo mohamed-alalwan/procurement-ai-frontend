@@ -263,7 +263,7 @@ export function getCategoricalField(data: FlattenedRow[], numericFields: string[
   // Prefer 'group' field
   if (fields.includes('group')) {
     const uniqueValues = new Set(data.map(row => row.group));
-    if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+    if (uniqueValues.size >= 2 && uniqueValues.size <= 200) {
       return 'group';
     }
   }
@@ -273,7 +273,7 @@ export function getCategoricalField(data: FlattenedRow[], numericFields: string[
     const fieldType = getColumnType(field, columns);
     if (fieldType === FieldType.YEAR || fieldType === FieldType.QUARTER || fieldType === FieldType.MONTH) {
       const uniqueValues = new Set(data.map(row => row[field]));
-      if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+      if (uniqueValues.size >= 2 && uniqueValues.size <= 200) {
         return field;
       }
     }
@@ -285,7 +285,7 @@ export function getCategoricalField(data: FlattenedRow[], numericFields: string[
       const fieldType = getColumnType(field, columns);
       if (fieldType === FieldType.DATE) {
         const uniqueValues = new Set(data.map(row => row[field]));
-        if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+        if (uniqueValues.size >= 2 && uniqueValues.size <= 200) {
           return field;
         }
       }
@@ -296,7 +296,7 @@ export function getCategoricalField(data: FlattenedRow[], numericFields: string[
   for (const field of fields) {
     if (!numericFields.includes(field)) {
       const uniqueValues = new Set(data.map(row => row[field]));
-      if (uniqueValues.size >= 2 && uniqueValues.size <= 50) {
+      if (uniqueValues.size >= 2 && uniqueValues.size <= 200) {
         return field;
       }
     }
