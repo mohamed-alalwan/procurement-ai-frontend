@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
 import { ChatMessageComponent } from "./chat-message";
 import { LoadingMessage } from "./loading-message";
 import { SuggestedQuestions, SuggestedQuestionsSkeleton } from "./suggested-questions";
@@ -15,6 +15,7 @@ interface ChatPanelProps {
   isLoading: boolean;
   suggestedQuestions: string[];
   onSendMessage: (message: string) => void;
+  onCancelRequest?: () => void;
   onRetry?: () => void;
   onMessageClick?: (index: number) => void;
   activeMessageIndex?: number;
@@ -25,6 +26,7 @@ export function ChatPanel({
   isLoading, 
   suggestedQuestions,
   onSendMessage,
+  onCancelRequest,
   onRetry,
   onMessageClick,
   activeMessageIndex
@@ -118,18 +120,28 @@ export function ChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask a question about the data..."
-            disabled={isLoading}
             className="min-h-[60px] max-h-[200px] resize-none"
             rows={2}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="h-[60px] w-[60px] flex-shrink-0"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+          {isLoading ? (
+            <Button
+              onClick={onCancelRequest}
+              size="icon"
+              variant="outline"
+              className="h-[60px] w-[60px] flex-shrink-0"
+            >
+              <Square className="h-5 w-5" fill="currentColor" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim()}
+              size="icon"
+              className="h-[60px] w-[60px] flex-shrink-0"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

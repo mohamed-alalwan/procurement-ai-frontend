@@ -37,6 +37,7 @@ export default function App() {
   const [activeMessageIndex, setActiveMessageIndex] = useState<number | undefined>(undefined);
   const [messageSettings, setMessageSettings] = useState<Record<number, MessageSettings>>({});
   const [showAnalyticsSheet, setShowAnalyticsSheet] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const isMobile = useIsMobile();
 
   // Load theme from localStorage
@@ -75,8 +76,12 @@ export default function App() {
     setShowRawResponse(false); // Hide raw response when generating new response
     setLastUserMessage(message);
 
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
-      const response = await sendChat(message, messages);
+      const response = await sendChat(message, messages, controller.signal);
       
       // Add assistant message with response data
       const assistantMessage: ChatMessage = {
@@ -97,6 +102,11 @@ export default function App() {
         [newMessageIndex]: { ...DEFAULT_SETTINGS }
       }));
     } catch (error) {
+      // Don't show error message if request was cancelled
+      if (error instanceof Error && error.message === 'Request cancelled') {
+        return;
+      }
+      
       // Add error message
       const errorMessage: ChatMessage = {
         role: "assistant",
@@ -108,6 +118,17 @@ export default function App() {
       setSuggestedQuestions([]);
     } finally {
       setIsLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleCancelRequest = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setIsLoading(false);
+      // Remove the last user message (the one that was just sent)
+      setMessages(prev => prev.slice(0, -1));
     }
   };
 
@@ -120,12 +141,19 @@ export default function App() {
   };
 
   const handleClearChat = () => {
+    // Cancel any ongoing request
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+    
     setMessages([]);
     setCurrentResponse(null);
     setSuggestedQuestions([]);
     setLastUserMessage("");
     setActiveMessageIndex(undefined);
     setMessageSettings({});
+    setIsLoading(false);
   };
 
   const handleMessageClick = (index: number) => {
@@ -240,6 +268,7 @@ export default function App() {
                 isLoading={isLoading}
                 suggestedQuestions={suggestedQuestions}
                 onSendMessage={handleSendMessage}
+                onCancelRequest={handleCancelRequest}
                 onRetry={handleRetry}
                 onMessageClick={handleMessageClick}
                 activeMessageIndex={activeMessageIndex}

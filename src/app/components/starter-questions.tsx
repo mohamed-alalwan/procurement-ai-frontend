@@ -2,10 +2,10 @@ import { Button } from "./ui/button";
 import { Sparkles } from "lucide-react";
 
 const STARTER_QUESTIONS = [
-  "What was the total procurement spend per fiscal year from 2012–2013 through 2014–2015?",
-  "Which department had the highest total spend in fiscal year 2013–2014?",
-  "How many purchase orders were created in each calendar quarter of 2014?",
-  "Who were the top 5 suppliers by total spend in fiscal year 2012–2013?"
+  "What is total spend in fiscal year 2014-2015?",
+  "Which department spent the most in fiscal year 2014-2015?",
+  "Who are the top 10 suppliers by spend in fiscal year 2014-2015?",
+  "Top 10 commodities by spend in 2014-2015"
 ];
 
 interface StarterQuestionsProps {

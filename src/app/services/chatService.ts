@@ -30,6 +30,17 @@ export interface ChatResponse {
   pipeline?: any[];
 }
 
+interface ApiResponse {
+  status?: 'error' | 'success';
+  error?: string;
+  answer?: string;
+  data?: any[];
+  columns?: ColumnMetadata[];
+  suggestedQuestions?: string[];
+  clarifyingQuestion?: string;
+  pipeline?: any[];
+}
+
 interface ApiHistoryMessage {
   role: "user" | "assistant";
   content: string;
@@ -46,7 +57,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 export async function sendChat(
   message: string,
-  history: ChatMessage[]
+  history: ChatMessage[],
+  abortSignal?: AbortSignal
 ): Promise<ChatResponse> {
   try {
     // Convert ChatMessage[] to API history format (only user and assistant, no system)
@@ -69,14 +81,20 @@ export async function sendChat(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: abortSignal
     });
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
 
-    const data: ChatResponse = await response.json();
+    const data: ApiResponse = await response.json();
+
+    // Check if API returned an error status
+    if (data.status === 'error') {
+      throw new Error('Failed to process your request. Please try again.');
+    }
 
     // Handle clarifying question as answer if no answer provided
     if (data.clarifyingQuestion && !data.answer) {
@@ -93,6 +111,11 @@ export async function sendChat(
       pipeline: data.pipeline
     };
   } catch (error) {
+    // Handle abort errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request cancelled');
+    }
+    
     console.error('Chat API error:', error);
     throw new Error(
       error instanceof Error 

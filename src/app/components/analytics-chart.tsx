@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { ChartLoading } from "./chart-loading";
 import { ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { useIsMobile } from "./ui/use-mobile";
 import {
   flattenData,
   getNumericFields,
@@ -42,6 +43,7 @@ interface AnalyticsChartProps {
 export function AnalyticsChart({ data, columns, isLoading, showInitialState, limit = 10, onLimitChange }: AnalyticsChartProps) {
   const chartRef = useRef<any>(null);
   const [showAllOptions, setShowAllOptions] = useState(false);
+  const isMobile = useIsMobile();
 
   // Flatten data and prepare for charting
   const chartData = useMemo(() => {
@@ -303,7 +305,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
               type="category"
               dataKey={categoricalField}
               className="text-xs"
-              width={150}
+              width={isMobile ? 150 : 200}
               tick={{ fill: 'currentColor', fontSize: 11 }}
               interval={0}
             />
