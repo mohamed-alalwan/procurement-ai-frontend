@@ -1,4 +1,4 @@
-# California Procurement Analytics (Frontend)
+# Procurement AI Assistant (Frontend)
 
 Chat-based analytics powered by a multi-agent AI system. Ask questions about California state procurement data (346,018 records, FY 2012–2015) in natural language and get instant visualizations and insights.
 
