@@ -4,6 +4,9 @@ import {
   Bar,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,8 +16,9 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { ChartLoading } from "./chart-loading";
-import { ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, BarChart2, TrendingUp, Layers, PieChart as PieChartIcon, CircleDot } from "lucide-react";
 import { useIsMobile } from "./ui/use-mobile";
 import {
   flattenData,
@@ -37,13 +41,37 @@ interface AnalyticsChartProps {
   isLoading?: boolean;
   showInitialState?: boolean;
   limit?: number;
+  userQuery?: string;
   onLimitChange?: (limit: number) => void;
 }
 
-export function AnalyticsChart({ data, columns, isLoading, showInitialState, limit = 10, onLimitChange }: AnalyticsChartProps) {
+// Detect chart type intent from the user's natural-language query
+function detectQueryChartHint(query: string): "line" | "bar" | "horizontal-bar" | "grouped-bar" | "pie" | "donut" | null {
+  if (!query) return null;
+  const q = query.toLowerCase();
+  if (/donut|doughnut/.test(q)) return "donut";
+  if (/\bpie\b|slice|proportion|share of|composition|breakdown/.test(q)) return "pie";
+  if (/\bline\b|trend|over time|timeline|growth|progression|month.by.month|year.by.year|quarterly trend|annual trend/.test(q)) return "line";
+  if (/horizontal bar|ranked|ranking/.test(q)) return "horizontal-bar";
+  if (/grouped bar|side.by.side|compare.*vs|\bvs\b|versus/.test(q)) return "grouped-bar";
+  if (/\bbar\b|\bbar chart\b|column chart|histogram/.test(q)) return "bar";
+  return null;
+}
+
+export function AnalyticsChart({ data, columns, isLoading, showInitialState, limit = 10, userQuery = "", onLimitChange }: AnalyticsChartProps) {
   const chartRef = useRef<any>(null);
   const [showAllOptions, setShowAllOptions] = useState(false);
+  // Per-dataset chart type overrides: keyed by a signature of the data
+  const [chartTypeOverrides, setChartTypeOverrides] = useState<Record<string, "line" | "bar" | "horizontal-bar" | "grouped-bar" | "pie" | "donut">>({});
   const isMobile = useIsMobile();
+
+  // Stable key for the current dataset (row count + column names + first row snapshot)
+  const dataKey = useMemo(() => {
+    if (!data || data.length === 0) return "__empty__";
+    const cols = Object.keys(data[0] || {}).join(",");
+    const firstRow = JSON.stringify(data[0]);
+    return `${data.length}|${cols}|${firstRow}`;
+  }, [data]);
 
   // Flatten data and prepare for charting
   const chartData = useMemo(() => {
@@ -54,7 +82,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
     const categoricalField = getCategoricalField(flattened, numericFields, columns);
 
     // Check if chartable
-    if (flattened.length < 2 || numericFields.length === 0 || !categoricalField) {
+    if (flattened.length === 0 || numericFields.length === 0 || !categoricalField) {
       return { chartable: false, reason: "Not chartable for this output" };
     }
 
@@ -84,44 +112,50 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
       : sortedData;
 
     // Determine chart type
-    let chartType: "line" | "bar" | "horizontal-bar" | "grouped-bar" = "bar";
-    
+    let chartType: "line" | "bar" | "horizontal-bar" | "grouped-bar" | "pie" | "donut" = "bar";
+
+    // Shared secondary-metric check (used by both time-series and non-time-series paths)
+    const secondaryMetric = getSecondaryMetric(metricsFields, primaryMetric);
+    const hasCompatibleMetrics = secondaryMetric && columns ? (() => {
+      const primaryCol = columns.find(c => c.name === primaryMetric);
+      const secondaryCol = columns.find(c => c.name === secondaryMetric);
+      if (!primaryCol || !secondaryCol) return true;
+      const incompatibleTypes = [
+        [primaryCol.type, secondaryCol.type],
+        [secondaryCol.type, primaryCol.type]
+      ].some(([t1, t2]) =>
+        t1 === 'PERCENTAGE' && (t2 === 'MONEY' || t2 === 'NUMERIC')
+      );
+      return !incompatibleTypes;
+    })() : true;
+    const rowCount = limitedData.length;
+
+    // Data-driven logic only (query hint applied later outside useMemo)
     if (isTimeSeries) {
-      chartType = "line";
+      if (secondaryMetric && hasCompatibleMetrics && rowCount <= 12) {
+        chartType = "grouped-bar";
+      } else if (rowCount <= 8) {
+        chartType = "bar";
+      } else {
+        chartType = "line";
+      }
     } else {
-      const rowCount = limitedData.length;
-      const secondaryMetric = getSecondaryMetric(metricsFields, primaryMetric);
-      
-      // Check label length for all bar charts
       const hasLongLabels = limitedData.some(row => {
         const label = String(row[categoricalField] || "");
         return label.length > 25;
       });
-      
-      // Check if metrics have compatible types for grouped bars
-      const hasCompatibleMetrics = secondaryMetric && columns ? (() => {
-        const primaryCol = columns.find(c => c.name === primaryMetric);
-        const secondaryCol = columns.find(c => c.name === secondaryMetric);
-        if (!primaryCol || !secondaryCol) return true;
-        // Don't group if one is PERCENTAGE and other is MONEY/NUMERIC (incompatible scales)
-        const incompatibleTypes = [
-          [primaryCol.type, secondaryCol.type],
-          [secondaryCol.type, primaryCol.type]
-        ].some(([t1, t2]) => 
-          t1 === 'PERCENTAGE' && (t2 === 'MONEY' || t2 === 'NUMERIC')
-        );
-        return !incompatibleTypes;
-      })() : true;
-      
-      // Check for grouped bars (dual metrics with compatible types)
+      const hasSingleMetric = !secondaryMetric || !hasCompatibleMetrics;
+      const proportionKeywords = /share|pct|percent|ratio|portion|mix|split|distribution|breakdown|composition|type|categor|sector|segment|group/i;
+      const looksProportional = proportionKeywords.test(primaryMetric) || proportionKeywords.test(categoricalField);
+
       if (secondaryMetric && rowCount <= 12 && !hasLongLabels && hasCompatibleMetrics) {
         chartType = "grouped-bar";
+      } else if (hasSingleMetric && rowCount >= 2 && rowCount <= 7 && !hasLongLabels) {
+        chartType = "donut";
+      } else if (hasSingleMetric && rowCount >= 2 && rowCount <= 12 && looksProportional && !hasLongLabels) {
+        chartType = "donut";
       } else if (hasLongLabels && rowCount <= 40) {
         chartType = "horizontal-bar";
-      } else if (rowCount >= 2 && rowCount <= 12) {
-        chartType = "bar";
-      } else if (rowCount >= 13 && rowCount <= 40) {
-        chartType = "bar";
       } else {
         chartType = "bar";
       }
@@ -138,6 +172,8 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
       nameField,
       primaryMetric,
       secondaryMetric: chartType === "grouped-bar" ? getSecondaryMetric(metricsFields, primaryMetric) : null,
+      availableSecondaryMetric: getSecondaryMetric(metricsFields, primaryMetric),
+      hasCompatibleSecondary: hasCompatibleMetrics && !!secondaryMetric,
       chartType,
       isTimeSeries
     };
@@ -181,7 +217,19 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
     );
   }
 
-  const { data: processedData, fullDataLength, categoricalField, nameField, primaryMetric, secondaryMetric, chartType } = chartData;
+  const { data: processedData, fullDataLength, categoricalField, nameField, primaryMetric, secondaryMetric, availableSecondaryMetric, hasCompatibleSecondary, chartType } = chartData;
+
+  // Priority: 1) manual dropdown override  2) query hint  3) data-driven auto
+  const queryHint = detectQueryChartHint(userQuery);
+  const effectiveQueryHint: "line" | "bar" | "horizontal-bar" | "grouped-bar" | "pie" | "donut" | null =
+    queryHint === "grouped-bar"
+      ? (hasCompatibleSecondary ? "grouped-bar" : null)  // grouped-bar needs real secondary
+      : queryHint;
+  const activeChartType = chartTypeOverrides[dataKey] ?? effectiveQueryHint ?? chartType;
+  // Use secondaryMetric whenever activeChartType is grouped-bar
+  const activeSecondaryMetric = activeChartType === "grouped-bar" ? (availableSecondaryMetric ?? secondaryMetric) : null;
+
+  const PIE_COLORS = ["#8b7dff", "#5fcea8", "#ff7d7d", "#ffd97d", "#7dc4ff", "#ff9d5f", "#c47dff", "#5fb8ff", "#a3e635", "#f472b6"];
 
   if (!primaryMetric || !categoricalField) {
     return (
@@ -255,7 +303,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
 
   // Render based on chart type
   const renderChart = () => {
-    if (chartType === "line") {
+    if (activeChartType === "line") {
       return (
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={processedData} ref={chartRef}>
@@ -290,7 +338,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
       );
     }
 
-    if (chartType === "horizontal-bar") {
+    if (activeChartType === "horizontal-bar") {
       return (
         <ResponsiveContainer width="100%" height={Math.max(300, processedData.length * 35)}>
           <BarChart data={processedData} layout="vertical" ref={chartRef}>
@@ -321,7 +369,7 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
       );
     }
 
-    if (chartType === "grouped-bar" && secondaryMetric) {
+    if (activeChartType === "grouped-bar" && activeSecondaryMetric) {
       return (
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={processedData} ref={chartRef}>
@@ -348,11 +396,46 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
               fill="#8b7dff" 
             />
             <Bar 
-              dataKey={secondaryMetric}
-              name={formatFieldName(secondaryMetric)}
+              dataKey={activeSecondaryMetric}
+              name={formatFieldName(activeSecondaryMetric)}
               fill="#5fcea8" 
             />
           </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    if (activeChartType === "pie" || activeChartType === "donut") {
+      const innerRadius = activeChartType === "donut" ? "55%" : 0;
+      return (
+        <ResponsiveContainer width="100%" height={340}>
+          <PieChart ref={chartRef}>
+            <Pie
+              data={processedData}
+              dataKey={primaryMetric}
+              nameKey={categoricalField}
+              cx="50%"
+              cy="50%"
+              innerRadius={innerRadius}
+              outerRadius="70%"
+              paddingAngle={0}
+              label={({ name, percent }) =>
+                `${formatCategoricalValue(name)} ${(percent * 100).toFixed(1)}%`
+              }
+              labelLine={true}
+            >
+              {processedData.map((_: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: any, name: any) => [
+                formatNumber(value, primaryMetric, columns),
+                formatFieldName(String(name))
+              ]}
+            />
+            <Legend formatter={(value) => formatFieldName(String(value))} />
+          </PieChart>
         </ResponsiveContainer>
       );
     }
@@ -390,10 +473,47 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
   
   const limitOptions = [10, 20, 30, 50, 100];
 
+  const chartTypeOptions: { value: "bar" | "horizontal-bar" | "line" | "grouped-bar" | "pie" | "donut"; label: string; icon: React.ReactNode }[] = [
+    { value: "bar",             label: "Bar",            icon: <BarChart3 className="h-3.5 w-3.5" /> },
+    { value: "horizontal-bar", label: "Horizontal Bar",  icon: <BarChart2 className="h-3.5 w-3.5 rotate-90" /> },
+    { value: "line",            label: "Line",           icon: <TrendingUp className="h-3.5 w-3.5" /> },
+    { value: "pie",             label: "Pie",            icon: <PieChartIcon className="h-3.5 w-3.5" /> },
+    { value: "donut",           label: "Donut",          icon: <CircleDot className="h-3.5 w-3.5" /> },
+    ...(availableSecondaryMetric ? [{ value: "grouped-bar" as const, label: "Grouped Bar", icon: <Layers className="h-3.5 w-3.5" /> }] : []),
+  ];
+
+  const selectedOption = chartTypeOptions.find(o => o.value === activeChartType);
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>Chart</CardTitle>
+        <Select
+          value={activeChartType}
+          onValueChange={(val) => setChartTypeOverrides(prev => ({ ...prev, [dataKey]: val as "line" | "bar" | "horizontal-bar" | "grouped-bar" | "pie" | "donut" }))}
+        >
+          <SelectTrigger className="w-[150px] h-8 text-xs gap-1.5">
+            <span className="flex items-center gap-1.5">
+              {selectedOption?.icon}
+              <span>{selectedOption?.label ?? "Chart type"}</span>
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            {chartTypeOptions.map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="flex items-center gap-2">
+                  {opt.icon}
+                  {opt.label}
+                  {opt.value === activeChartType && !chartTypeOverrides[dataKey] && (
+                    <span className="ml-1 text-[10px] text-muted-foreground">
+                      {effectiveQueryHint ? "(query)" : "(auto)"}
+                    </span>
+                  )}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
         {renderChart()}

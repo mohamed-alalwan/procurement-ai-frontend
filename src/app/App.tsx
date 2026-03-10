@@ -304,6 +304,7 @@ export default function App() {
                   isLoading={isLoading}
                   showInitialState={messages.length === 0 && !isLoading}
                   limit={currentSettings.chartLimit}
+                  userQuery={activeMessageIndex !== undefined ? (messages[activeMessageIndex - 1]?.content || "") : ""}
                   onLimitChange={(limit) => activeMessageIndex !== undefined && updateMessageSettings(activeMessageIndex, { chartLimit: limit })}
                 />
                 <AnalyticsTable 
@@ -353,6 +354,7 @@ export default function App() {
                   isLoading={isLoading}
                   showInitialState={false}
                   limit={currentSettings.chartLimit}
+                  userQuery={activeMessageIndex !== undefined ? (messages[activeMessageIndex - 1]?.content || "") : ""}
                   onLimitChange={(limit) => activeMessageIndex !== undefined && updateMessageSettings(activeMessageIndex, { chartLimit: limit })}
                 />
               </TabsContent>
