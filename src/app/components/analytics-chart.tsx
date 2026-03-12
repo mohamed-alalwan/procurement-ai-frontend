@@ -92,16 +92,31 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
     }
 
     // Get primary metric excluding the categorical field
-    const metricsFields = numericFields.filter(f => f !== categoricalField);
+    let metricsFields = numericFields.filter(f => f !== categoricalField);
+
+    // Edge case: all fields are numeric (e.g. { total_spend: 123 }).
+    // Synthesize a label column from the field name so we can still chart it.
+    let workingFlattened = flattened;
+    let workingCategorical = categoricalField;
+    if (metricsFields.length === 0 && numericFields.length > 0) {
+      const metricField = numericFields[0];
+      workingCategorical = "_label";
+      workingFlattened = flattened.map(row => ({
+        ...row,
+        _label: formatFieldName(metricField),
+      }));
+      metricsFields = [metricField];
+    }
+
     const primaryMetric = getPrimaryMetric(metricsFields);
     if (!primaryMetric) {
       return { chartable: false, reason: "No suitable metric found" };
     }
 
-    const isTimeSeries = isTimeSeriesField(flattened, categoricalField, columns);
+    const isTimeSeries = isTimeSeriesField(workingFlattened, workingCategorical, columns);
     
     // Sort data
-    const sortedData = sortDataForChart(flattened, categoricalField, primaryMetric, columns);
+    const sortedData = sortDataForChart(workingFlattened, workingCategorical, primaryMetric, columns);
 
     // Store full sorted data before limiting
     const fullData = sortedData;
@@ -141,12 +156,12 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
       }
     } else {
       const hasLongLabels = limitedData.some(row => {
-        const label = String(row[categoricalField] || "");
+        const label = String(row[workingCategorical] || "");
         return label.length > 25;
       });
       const hasSingleMetric = !secondaryMetric || !hasCompatibleMetrics;
       const proportionKeywords = /share|pct|percent|ratio|portion|mix|split|distribution|breakdown|composition|type|categor|sector|segment|group/i;
-      const looksProportional = proportionKeywords.test(primaryMetric) || proportionKeywords.test(categoricalField);
+      const looksProportional = proportionKeywords.test(primaryMetric) || proportionKeywords.test(workingCategorical);
 
       if (secondaryMetric && rowCount <= 12 && !hasLongLabels && hasCompatibleMetrics) {
         chartType = "grouped-bar";
@@ -162,13 +177,13 @@ export function AnalyticsChart({ data, columns, isLoading, showInitialState, lim
     }
 
     // Find related name field for better tooltips
-    const nameField = findRelatedNameField(flattened, categoricalField);
+    const nameField = findRelatedNameField(workingFlattened, workingCategorical);
     
     return {
       chartable: true,
       data: limitedData,
       fullDataLength: fullData.length,
-      categoricalField,
+      categoricalField: workingCategorical,
       nameField,
       primaryMetric,
       secondaryMetric: chartType === "grouped-bar" ? getSecondaryMetric(metricsFields, primaryMetric) : null,
